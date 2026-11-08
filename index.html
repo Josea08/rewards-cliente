@@ -45,6 +45,7 @@ footer{text-align:center;color:var(--muted);padding:8px 16px 24px;font-size:.85r
   <header>
     <h1>🎁 Rewards</h1>
     <p>Tarjeta de fidelidad</p>
+    <p id="businessName"></p>
   </header>
   <div id="card" class="bank-card">
     <div class="bank-card-head">
@@ -77,7 +78,8 @@ function decodeData(s) {
   return JSON.parse(decodeURIComponent(escape(atob(s))));
 }
 function importPayload(d) {
-  return JSON.stringify({ v: 1, n: d.n, c: d.c, d: d.d, p: d.p, t: d.ph || '' });
+  // Sin teléfono: el QR solo lleva lo necesario para crear la tarjeta.
+  return JSON.stringify({ v: 1, n: d.n, c: d.c, d: d.d, p: d.p, b: d.b || '', th: d.t ?? 0 });
 }
 (function () {
   var m = (location.hash || '').match(/#c=([A-Za-z0-9\-_]+)/);
@@ -87,6 +89,7 @@ function importPayload(d) {
   if (!d || d.v !== 1 || !d.c || !d.n) { document.getElementById('error').hidden = false; return; }
   var g = GRADIENTS[d.t || 0] || GRADIENTS[0];
   document.getElementById('card').style.background = 'linear-gradient(135deg,' + g[0] + ',' + g[1] + ')';
+  document.getElementById('businessName').textContent = d.b ? '🏪 ' + d.b : '';
   document.getElementById('code').textContent = d.c;
   document.getElementById('name').textContent = d.n;
   document.getElementById('progress').textContent = (d.s || 0) + ' de 10 compras';
