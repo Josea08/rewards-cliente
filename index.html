@@ -82,7 +82,9 @@ function importPayload(d) {
   return JSON.stringify({ v: 1, n: d.n, c: d.c, d: d.d, p: d.p, b: d.b || '', th: d.t ?? 0 });
 }
 (function () {
-  var m = (location.hash || '').match(/#c=([A-Za-z0-9\-_]+)/);
+  // El link puede venir con ?c= (App Link https que se manda por WhatsApp)
+  // o con #c= (link viejo de la página). Se aceptan los dos.
+  var m = (location.search || '').match(/[?&]c=([A-Za-z0-9\-_]+)/) || (location.hash || '').match(/#c=([A-Za-z0-9\-_]+)/);
   if (!m) { document.getElementById('error').hidden = false; return; }
   var d;
   try { d = decodeData(m[1]); } catch (e) { document.getElementById('error').hidden = false; return; }
