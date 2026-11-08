@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Rewards — Tarjeta de fidelidad</title>
+<style>
+:root{--bg:#0f1115;--card:#171a21;--text:#f3f4f6;--muted:#9ca3af;--line:#2a2f3a;--accent:#dc2626}
+@media (prefers-color-scheme:light){:root{--bg:#f4f5f7;--card:#ffffff;--text:#111827;--muted:#6b7280;--line:#e5e7eb}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+main{max-width:480px;margin:0 auto;padding:20px 16px 8px}
+header{text-align:center;margin-bottom:18px}
+header h1{margin:0;font-size:1.6rem}
+header p{margin:6px 0 0;color:var(--muted)}
+.bank-card{border-radius:18px;padding:16px 20px 14px;color:#fff;margin-bottom:16px;box-shadow:0 10px 26px rgba(0,0,0,.28)}
+.bank-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.bank-card-brand{font-size:.8rem;letter-spacing:.2em;text-transform:uppercase;opacity:.9}
+.bank-card-chip{width:52px;height:38px;border-radius:6px;background:linear-gradient(135deg,#ffe08a,#d4a017);box-shadow:inset 0 0 0 1px rgba(120,80,0,.35)}
+.bank-card-number{margin:0 0 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:1.35rem;letter-spacing:.08em}
+.bank-card-foot{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.bank-card-label{display:block;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;opacity:.75;margin-bottom:2px}
+.bank-card-holder h2{margin:0;font-size:1.15rem}
+.bank-card-qr{background:#fff;border-radius:8px;padding:5px;flex-shrink:0}
+.bank-card-qr svg{width:84px;height:auto;display:block}
+.progress{font-size:1.1rem;font-weight:700;margin:4px 0 12px}
+.slots{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.slot{border:2px solid var(--line);border-radius:12px;padding:10px 4px 8px;text-align:center}
+.slot.stamped{border-color:#dc2626;background:rgba(220,38,38,.12)}
+.slot .num{display:block;font-size:1.3rem;font-weight:800}
+.slot .lbl{display:block;font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.slot.milestone.stamped .lbl{color:#dc2626;font-weight:700}
+.reward{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.reward p{margin:0}
+.badge{display:inline-block;padding:4px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-weight:700;font-size:.85rem;white-space:nowrap}
+.badge.done{background:#dcfce7;color:#166534}
+.hint{color:var(--muted);text-align:center;font-size:.9rem}
+footer{text-align:center;color:var(--muted);padding:8px 16px 24px;font-size:.85rem}
+.error{text-align:center;color:var(--muted);padding:40px 16px}
+</style>
+</head>
+<body>
+<main id="app" hidden>
+  <header>
+    <h1>🎁 Rewards</h1>
+    <p>Tarjeta de fidelidad</p>
+  </header>
+  <div id="card" class="bank-card">
+    <div class="bank-card-head">
+      <span class="bank-card-brand">Tarjeta de fidelidad</span>
+      <span class="bank-card-chip" aria-hidden="true"></span>
+    </div>
+    <p class="bank-card-number"><strong id="code"></strong></p>
+    <div class="bank-card-foot">
+      <div class="bank-card-holder">
+        <span class="bank-card-label">Titular</span>
+        <h2 id="name"></h2>
+      </div>
+      <div class="bank-card-qr"><div id="cardQr"></div></div>
+    </div>
+  </div>
+  <p class="progress" id="progress"></p>
+  <div class="slots" id="slots"></div>
+  <div class="reward"><p>🎁 <strong>Compra 5:</strong> <span id="discount"></span></p><span class="badge" id="discountState"></span></div>
+  <div class="reward"><p>🏆 <strong>Compra 10:</strong> <span id="prize"></span></p><span class="badge" id="prizeState"></span></div>
+  <p class="hint">Presenta esta tarjeta en cada compra. El código QR lo escanea el negocio para sellar tu compra.</p>
+</main>
+<p class="error" id="error" hidden>No se pudo cargar la tarjeta. Pide un nuevo link en el negocio.</p>
+<footer>© J'R Dev 2026</footer>
+<script src="qrcode.min.js"></script>
+<script>
+var GRADIENTS = [['#7f1d1d','#dc2626'],['#1e3a8a','#3b82f6'],['#14532d','#22c55e'],['#581c87','#a855f7'],['#7c2d12','#f97316'],['#713f12','#eab308'],['#134e4a','#14b8a6'],['#831843','#ec4899']];
+function decodeData(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  return JSON.parse(decodeURIComponent(escape(atob(s))));
+}
+function importPayload(d) {
+  return JSON.stringify({ v: 1, n: d.n, c: d.c, d: d.d, p: d.p, t: d.ph || '' });
+}
+(function () {
+  var m = (location.hash || '').match(/#c=([A-Za-z0-9\-_]+)/);
+  if (!m) { document.getElementById('error').hidden = false; return; }
+  var d;
+  try { d = decodeData(m[1]); } catch (e) { document.getElementById('error').hidden = false; return; }
+  if (!d || d.v !== 1 || !d.c || !d.n) { document.getElementById('error').hidden = false; return; }
+  var g = GRADIENTS[d.t || 0] || GRADIENTS[0];
+  document.getElementById('card').style.background = 'linear-gradient(135deg,' + g[0] + ',' + g[1] + ')';
+  document.getElementById('code').textContent = d.c;
+  document.getElementById('name').textContent = d.n;
+  document.getElementById('progress').textContent = (d.s || 0) + ' de 10 compras';
+  var slots = document.getElementById('slots');
+  for (var n = 1; n <= 10; n++) {
+    var div = document.createElement('div');
+    div.className = 'slot' + (n <= (d.s || 0) ? ' stamped' : '') + ((n === 5 || n === 10) ? ' milestone' : '');
+    div.innerHTML = '<span class="num">' + (n <= (d.s || 0) ? '✓' : n) + '</span><span class="lbl">' + (n === 5 ? 'Descuento' : n === 10 ? 'Premio' : 'Compra') + '</span>';
+    slots.appendChild(div);
+  }
+  document.getElementById('discount').textContent = d.d || '';
+  document.getElementById('prize').textContent = d.p || '';
+  var ds = document.getElementById('discountState'), ps = document.getElementById('prizeState');
+  ds.textContent = d.dc ? 'Entregado ✓' : ((d.s || 0) >= 5 ? '¡Desbloqueado!' : 'Pendiente');
+  ds.className = 'badge' + (d.dc ? ' done' : '');
+  ps.textContent = d.pc ? 'Entregado ✓' : ((d.s || 0) >= 10 ? '¡Desbloqueado!' : 'Pendiente');
+  ps.className = 'badge' + (d.pc ? ' done' : '');
+  if (typeof qrcode !== 'undefined') {
+    var qr = qrcode(0, 'M');
+    qr.addData(importPayload(d));
+    qr.make();
+    document.getElementById('cardQr').innerHTML = qr.createSvgTag({ cellSize: 2, margin: 4, scalable: true });
+  }
+  document.getElementById('app').hidden = false;
+})();
+</script>
+</body>
+</html>
