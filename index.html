@@ -90,7 +90,13 @@ function importPayload(d) {
   try { d = decodeData(m[1]); } catch (e) { document.getElementById('error').hidden = false; return; }
   if (!d || d.v !== 1 || !d.c || !d.n) { document.getElementById('error').hidden = false; return; }
   var g = GRADIENTS[d.t || 0] || GRADIENTS[0];
-  document.getElementById('card').style.background = 'linear-gradient(135deg,' + g[0] + ',' + g[1] + ')';
+  // La foto es el fondo de la tarjeta (no un logo), igual que en el local:
+  // si el link trajo la miniatura, cubre la tarjeta con el mismo velo oscuro.
+  if (d.im) {
+    document.getElementById('card').style.background = 'linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.45)), url(' + d.im + ') center/cover';
+  } else {
+    document.getElementById('card').style.background = 'linear-gradient(135deg,' + g[0] + ',' + g[1] + ')';
+  }
   document.getElementById('businessName').textContent = d.b ? '🏪 ' + d.b : '';
   document.getElementById('code').textContent = d.c;
   document.getElementById('name').textContent = d.n;
